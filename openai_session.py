@@ -116,6 +116,7 @@ class SessionKeeper(object):
             ans = random.randint(0, (2**32)-1)
             while self._has(ans):
                 ans = random.randint(0, (2**32)-1)
+            return ans
 
     def call(self, sid: int, newMsg: str, model: ModelType = GPT3_5) -> OpenAIMessageWrapper:
         with self.lock:
