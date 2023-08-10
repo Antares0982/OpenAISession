@@ -1,3 +1,5 @@
+#!/usr/bin/env -S python3 -O
+
 import os
 import sys
 
@@ -39,7 +41,7 @@ if __name__ == "__main__":
             ensure_id = bool(data.get("ensure_id", False))
             systemMsg = str(
                 data.get("systemMsg", systemMsgDefault))
-            model = modelStringToModel(str(data.get("model", "GPT3_5")))
+            model = modelStringToModel(str(data.get("model", "GPT4")))
 
             if not ensure_id:
                 return sessions.callCreateIfNotExist(sid, msg, systemMsg, model).content
