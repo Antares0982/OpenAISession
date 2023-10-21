@@ -6,7 +6,6 @@ from threading import Lock
 from typing import Dict, List, Optional, Union
 
 import openai
-import tiktoken
 
 from api_call import ChatCaller
 from model_wrap import (GPT3_5, TIKTOKEN_NAME_DICT, TOKEN_LIMIT_DICT,
@@ -98,6 +97,10 @@ class OpenAISession(object):
         return response, index
 
     def _calculate_propriate_cut_index(self, model: ModelWrapper):
+        try:
+            import tiktoken
+        except ImportError:
+            return 0  # the version of python is too old
         end = len(self.history)
         #
         token_count = self._count_token(model, -1)
@@ -130,6 +133,7 @@ class OpenAISession(object):
             msg = self._system_msg
         else:
             msg = self.history[idx]["content"]  # type: ignore
+        import tiktoken
         enc = tiktoken.encoding_for_model(TIKTOKEN_NAME_DICT[model.id])
         r = len(enc.encode(msg))
         self._cached_token_count[idx+1] = r
