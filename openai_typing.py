@@ -1,4 +1,4 @@
-from typing import List
+from typing import TYPE_CHECKING, Any, List
 
 
 class OpenAIMessageWrapper(object):
@@ -13,6 +13,10 @@ class OpenAIMessageWrapper(object):
             "role": self.role,
             "content": self.content
         })
+
+    if TYPE_CHECKING:
+        def __getitem__(self, key: str) -> Any:
+            return self.__dict__[key]
 
 
 class OpenAIChoicesWrapper(object):

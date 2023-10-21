@@ -2,78 +2,80 @@
 
 import os
 import sys
+from typing import TYPE_CHECKING, Any
 
-import flask
-
-from model_wrap import modelStringToModel
+from model_wrap import model_string_to_model
 from openai_session import SessionKeeper
 
+if TYPE_CHECKING:
+    from flask.typing import ResponseReturnValue
+
+
+SYSTEM_MSG_DEFAULT = "You are a helpful assistant."
+
+
 if __name__ == "__main__":
+    import flask
+
     dataFolder = os.environ.get("OPENAI_DATA_FOLDER")
     if dataFolder is None:
         print("environment variable OPENAI_DATA_FOLDER not set", file=sys.stderr)
         exit(1)
     if not os.path.exists(dataFolder):
         os.makedirs(dataFolder)
-    systemMsgDefault = os.environ.get(
-        "OPENAI_SYSTEM_MSG", "You are a helpful assistant.")
-    port = os.environ.get("OPENAI_PORT")
-    if port is None:
+
+    port_str = os.environ.get("OPENAI_PORT")
+    if port_str is None:
         print("environment variable OPENAI_PORT not set", file=sys.stderr)
         exit(1)
-    port = int(port)
+    port = int(port_str)
 
     sessions = SessionKeeper(dataFolder)
     app = flask.Flask(__name__)
 
+    def _on_exception(e: Exception):
+        try:
+            if app.debug:
+                import traceback
+                return traceback.format_exc()
+        except Exception:
+            ...
+        return str(e)
+
     @app.route("/api", methods=["POST"])
-    def callOpenAI():
-        data: dict = flask.request.json
+    def api() -> "ResponseReturnValue":
+        data: dict = flask.request.json  # type: ignore
         try:
             if data is None:
                 return "No data provided", 400
-            if "sid" not in data:
+            if "sid" not in data or not str(data["sid"]).isdigit():
                 return "No session id provided", 400
             if "msg" not in data:
                 return "No message provided", 400
             sid = int(data["sid"])
             msg = str(data["msg"])
-            ensure_id = bool(data.get("ensure_id", False))
-            systemMsg = str(
-                data.get("systemMsg", systemMsgDefault))
-            model = modelStringToModel(str(data.get("model", "GPT4")))
-
-            if not ensure_id:
-                return sessions.callCreateIfNotExist(sid, msg, systemMsg, model).content
-            else:
-                return sessions.call(sid, msg, model).content
+            override_msg = data.get("system_msg", None)
+            if override_msg is not None:
+                override_msg = str(override_msg)
+            model = model_string_to_model(str(data.get("model", "GPT4")))
+            return sessions.call(sid, msg, model, override_msg).content
         except Exception as e:
-            return str(e), 400
+            return _on_exception(e), 400
 
-    @app.route("/newid", methods=["GET"])
-    def newId():
-        # get id hint
-        hint = flask.request.args.get("hint")
+    @app.route("/create", methods=["POST"])
+    def create() -> "ResponseReturnValue":
         try:
-            hint = int(hint)
-        except Exception:
-            hint = None
-        return str(sessions.newId(hint))
-
-    @app.route("/create", methods=["GET"])
-    def create():
-        try:
+            data: dict = flask.request.json  # type: ignore
             # get id from args
-            sid = flask.request.args.get("sid")
-            systemMsg = flask.request.args.get("systemMsg")
-            if systemMsg is None:
-                systemMsg = systemMsgDefault
-            if sid is None:
-                raise ValueError("No session id provided")
-            sessions.create(int(sid), systemMsg)  # throw on error
-            return "OK"
+            _sid: Any = data.get("sid")
+            system_msg: Any = data.get("system_msg")
+            sid = sessions.newId(None if _sid is None else int(_sid))
+            #
+            sessions.create(sid, str(system_msg) if system_msg is not None else SYSTEM_MSG_DEFAULT)  # throw on error
+            return str(sid)
         except Exception as e:
-            return str(e), 400
+            return _on_exception(e), 400
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=port, debug=False)
