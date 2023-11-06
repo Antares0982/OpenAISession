@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from model_wrap import model_string_to_model
 from openai_session import SessionKeeper
+from openai_session_logging import close_conn, log
 
 if TYPE_CHECKING:
     from flask.typing import ResponseReturnValue
@@ -19,7 +20,6 @@ if __name__ == "__main__":
 
     def on_exit():
         try:
-            from openai_session_logging import close_conn
             close_conn()
         except Exception:
             ...
@@ -72,7 +72,7 @@ if __name__ == "__main__":
         except Exception as e:
             return _on_exception(e), 400
         try:
-            from openai_session_logging import log
+
             log(f"API called: sid={sid}, system_msg={override_msg}, msg={msg}, return={ret}")
         except Exception:
             ...
@@ -92,7 +92,6 @@ if __name__ == "__main__":
         except Exception as e:
             return _on_exception(e), 400
         try:
-            from openai_session_logging import log
             log(f"Created session {sid}")
         except Exception:
             ...
