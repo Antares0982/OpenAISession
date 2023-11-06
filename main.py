@@ -15,6 +15,15 @@ SYSTEM_MSG_DEFAULT = "You are a helpful assistant."
 
 
 if __name__ == "__main__":
+    import atexit
+
+    def on_exit():
+        try:
+            from openai_session_logging import close_conn
+            close_conn()
+        except Exception:
+            ...
+    atexit.register(on_exit)
     import flask
 
     dataFolder = os.environ.get("OPENAI_DATA_FOLDER")
@@ -40,7 +49,7 @@ if __name__ == "__main__":
                 return traceback.format_exc()
         except Exception:
             ...
-        return str(e)
+        return repr(e)
 
     @app.route("/api", methods=["POST"])
     def api() -> "ResponseReturnValue":
@@ -58,9 +67,16 @@ if __name__ == "__main__":
             if override_msg is not None:
                 override_msg = str(override_msg)
             model = model_string_to_model(str(data.get("model", "GPT4")))
-            return sessions.call(sid, msg, model, override_msg).content
+            response = sessions.call(sid, msg, model, override_msg)
+            ret = response.content
         except Exception as e:
             return _on_exception(e), 400
+        try:
+            from openai_session_logging import log
+            log(f"API called: sid={sid}, system_msg={override_msg}, msg={msg}, return={ret}")
+        except Exception:
+            ...
+        return ret
 
     @app.route("/create", methods=["POST"])
     def create() -> "ResponseReturnValue":
@@ -72,10 +88,15 @@ if __name__ == "__main__":
             sid = sessions.newId(None if _sid is None else int(_sid))
             #
             sessions.create(sid, str(system_msg) if system_msg is not None else SYSTEM_MSG_DEFAULT)  # throw on error
-            return str(sid)
+            ret = str(sid)
         except Exception as e:
             return _on_exception(e), 400
-
+        try:
+            from openai_session_logging import log
+            log(f"Created session {sid}")
+        except Exception:
+            ...
+        return ret
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=port, debug=False)

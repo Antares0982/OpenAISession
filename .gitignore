@@ -1,6 +1,7 @@
 data/
 test.py
 .vscode/
+rabbitmq_interface.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

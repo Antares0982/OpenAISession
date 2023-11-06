@@ -8,8 +8,7 @@ from typing import Dict, List, Optional, Union
 import openai
 
 from api_call import ChatCaller
-from model_wrap import (GPT3_5, TIKTOKEN_NAME_DICT, TOKEN_LIMIT_DICT,
-                        ModelWrapper)
+from model_wrap import GPT3_5, TIKTOKEN_NAME_DICT, TOKEN_LIMIT_DICT, ModelWrapper
 from openai_typing import OpenAIMessageWrapper
 
 ModelType = Union[int, ModelWrapper]
@@ -109,6 +108,8 @@ class OpenAISession(object):
         #
         token_max = self._get_token_max(model)
         if token_count < token_max:
+            from openai_session_logging import log
+            log(f"Token used: {token_count}")
             return 0
         #
         start = 0
@@ -118,7 +119,9 @@ class OpenAISession(object):
             token_count -= self._count_token(model, start)
             start += 1
             if token_count < token_max:
-                print(f"Warning: history too long, discarding history from index {start}")
+                from openai_session_logging import log
+                log(f"Token used: {token_count}")
+                log(f"Warning: history too long, discarding history from index {start}")
                 return start
         #
         raise RuntimeError("Logic error: cannot find appropriate cut index")
