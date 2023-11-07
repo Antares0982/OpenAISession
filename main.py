@@ -13,6 +13,27 @@ if TYPE_CHECKING:
 
 
 SYSTEM_MSG_DEFAULT = "You are a helpful assistant."
+DEFAULT_MODEL = "GPT4_TURBO"
+
+
+def set_default_model(model_raw_string) -> None:
+    from model_wrap import MODEL_DICT
+    _k = None
+    for k, v in MODEL_DICT.items():
+        if v == model_raw_string:
+            _k = k
+            break
+    if _k is None:
+        return
+    global DEFAULT_MODEL
+    from model_wrap import STR_MODEL_DICT
+
+    for k2, v2 in STR_MODEL_DICT.items():
+        if v2 == _k:
+            DEFAULT_MODEL = k2
+            log(f"Set default model to {model_raw_string}")
+            return
+    log(f"Failed to set default model to {model_raw_string}")
 
 
 if __name__ == "__main__":
@@ -38,6 +59,10 @@ if __name__ == "__main__":
         print("environment variable OPENAI_PORT not set", file=sys.stderr)
         exit(1)
     port = int(port_str)
+
+    _use_model_name = os.environ.get("OPENAI_DEFAULT_MODEL_STRING")
+    if _use_model_name is not None:
+        set_default_model(_use_model_name)
 
     sessions = SessionKeeper(dataFolder)
     app = flask.Flask(__name__)
@@ -66,7 +91,7 @@ if __name__ == "__main__":
             override_msg = data.get("system_msg", None)
             if override_msg is not None:
                 override_msg = str(override_msg)
-            model = model_string_to_model(str(data.get("model", "GPT4")))
+            model = model_string_to_model(str(data.get("model", DEFAULT_MODEL)))
             response = sessions.call(sid, msg, model, override_msg)
             ret = response.content
         except Exception as e:

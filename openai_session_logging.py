@@ -26,6 +26,7 @@ def log(msg, key=None):
         routing_key = f"logging.openai_session.{key}"
     try:
         rabbitmq_interface.send_message(routing_key, msg, _conn())
+        print(f"[{routing_key}] {msg}")
     except Exception:
         ...
 

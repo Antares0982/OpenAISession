@@ -66,7 +66,11 @@ def model_string_to_model(s: str) -> ModelWrapper:
         if s.isdigit():
             model_int = int(s)
             if model_int < 0 or model_int >= MAX:
-                raise ValueError(f"Model {s} is not valid")
+                raise ValueError(f"Model id {s} is not valid, you may want to use string. {repr_supported_models()}")
             return ModelWrapper(model_int)
-        raise ValueError(f"Model {s} is not valid")
+        raise ValueError(f"Model {s} is not valid. {repr_supported_models()}")
     return ModelWrapper(model_int)
+
+
+def repr_supported_models():
+    return "Supported models: "+", ".join([str(m) for m in MODEL_DICT.values()])
