@@ -8,11 +8,14 @@ from typing import Dict, List, Optional, Union
 import openai
 
 from api_call import ChatCaller
-from model_wrap import GPT3_5, TIKTOKEN_NAME_DICT, TOKEN_LIMIT_DICT, ModelWrapper
+from model_wrap import GPT3_5, MODEL_DICT, PRICING_DICT, TIKTOKEN_NAME_DICT, TOKEN_LIMIT_DICT, ModelWrapper
 from openai_session_logging import log
 from openai_typing import OpenAIMessageWrapper
 
 ModelType = Union[int, ModelWrapper]
+
+_INPUT = 0
+_OUTPUT = 1
 
 
 class OpenAISession(object):
@@ -73,6 +76,8 @@ class OpenAISession(object):
             newHistory.append(in_msg)
             self.history = newHistory
             self._save(self.sessions.dataFolder)
+            # check token usage
+            self._out_token_usage_check(model)
             return in_msg
 
     def _internal_call(self, new_history, model: ModelWrapper):
@@ -100,7 +105,7 @@ class OpenAISession(object):
         try:
             import tiktoken
         except ImportError:
-            return 0  # the version of python is too old
+            return 0  # in case tiktoken is not supported
         end = len(self.history)
         #
         token_count = self._count_token(model, -1)
@@ -109,8 +114,7 @@ class OpenAISession(object):
         #
         token_max = self._get_token_max(model)
         if token_count < token_max:
-
-            log(f"Token used: {token_count}")
+            self._token_usage_hint(token_count, model)
             return 0
         #
         start = 0
@@ -120,13 +124,16 @@ class OpenAISession(object):
             token_count -= self._count_token(model, start)
             start += 1
             if token_count < token_max:
-                log(f"Token used: {token_count}")
+                self._token_usage_hint(token_count, model)
                 log(f"Warning: history too long, discarding history from index {start}")
                 return start
         #
         raise RuntimeError("Logic error: cannot find appropriate cut index")
 
     def _count_token(self, model: ModelWrapper, idx: int):
+        """
+        raise: ImportError if tiktoken is not supported
+        """
         if len(self._cached_token_count) < len(self.history)+1:
             self._cached_token_count += [-1]*(len(self.history)+1-len(self._cached_token_count))
         if self._cached_token_count[idx+1] != -1:
@@ -147,6 +154,19 @@ class OpenAISession(object):
         if ret is None:
             raise RuntimeError(f"Cannot find token limit of model id: {model.id}")
         return ret
+
+    def _token_usage_hint(self, token_count: int, model: ModelWrapper, usage=_INPUT):
+        price_per_1k = PRICING_DICT[model.id][usage]
+        hint = 'input' if usage == _INPUT else 'output'
+        log(f"Using model: {MODEL_DICT[model.id]}, token used ({hint}): {token_count}, estimated price: ${(token_count/1000) * price_per_1k:.4f}")
+
+    def _out_token_usage_check(self, model: ModelWrapper):
+        # the last message is the output
+        try:
+            token_count = self._count_token(model, len(self.history)-1)
+        except ImportError:
+            return  # in case tiktoken is not supported
+        self._token_usage_hint(token_count, model, _OUTPUT)
 
 
 class SessionKeeper(object):
