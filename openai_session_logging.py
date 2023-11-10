@@ -27,8 +27,8 @@ def log(msg, key=None):
     try:
         rabbitmq_interface.send_message(routing_key, msg, _conn())
         print(f"[{routing_key}] {msg}")
-    except Exception:
-        ...
+    except Exception as e:
+        print(e)
 
 
 def close_conn():
