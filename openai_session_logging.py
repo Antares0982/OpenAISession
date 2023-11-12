@@ -1,10 +1,10 @@
 
 __inited = False
-__feature_supported = True
+__logging_interface = None
 
 
 def log(msg, key=None):
-    global __inited, __feature_supported
+    global __inited, __logging_interface
     if not __inited:
         __inited = True
         try:
@@ -15,10 +15,10 @@ def log(msg, key=None):
                 shell=True
             )
             import rabbitmq_interface
+            __logging_interface = rabbitmq_interface.send_message
         except Exception:
             print("Failed to import rabbitmq_interface")
-            __feature_supported = False
-    if not __feature_supported:
+    if __logging_interface is None:
         return
     #
     if key is None:
@@ -27,7 +27,7 @@ def log(msg, key=None):
         routing_key = f"logging.openai_session.{key}"
     #
     try:
-        rabbitmq_interface.send_message(routing_key, msg)
+        __logging_interface(routing_key, msg)
         print(f"[{routing_key}] {msg}")
     except Exception as e:
         print(e)
