@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from model_wrap import model_string_to_model
 from openai_session import SessionKeeper
-from openai_session_logging import close_conn, log
+from openai_session_logging import log
 
 if TYPE_CHECKING:
     from flask.typing import ResponseReturnValue
@@ -37,14 +37,6 @@ def set_default_model(model_raw_string) -> None:
 
 
 if __name__ == "__main__":
-    import atexit
-
-    def on_exit():
-        try:
-            close_conn()
-        except Exception:
-            ...
-    atexit.register(on_exit)
     import flask
 
     dataFolder = os.environ.get("OPENAI_DATA_FOLDER")
