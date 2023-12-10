@@ -12,6 +12,7 @@ from model_wrap import GPT3_5, MODEL_DICT, PRICING_DICT, TIKTOKEN_NAME_DICT, TOK
 from openai_session_logging import log
 from openai_typing import OpenAIMessageWrapper
 
+
 ModelType = Union[int, ModelWrapper]
 
 _INPUT = 0
@@ -80,8 +81,8 @@ class OpenAISession(object):
             self._out_token_usage_check(model)
             return in_msg
 
-    def _internal_call(self, new_history, model: ModelWrapper):
-        index = self._calculate_propriate_cut_index(model)
+    def _internal_call(self, new_history: List[Dict[str, str]], model: ModelWrapper):
+        index = self._calculate_propriate_cut_index(new_history[-1]["content"], model)
         response = None
         #
         while index < len(new_history):
@@ -101,14 +102,14 @@ class OpenAISession(object):
             raise RuntimeError("Logic error: response is None")
         return response, index
 
-    def _calculate_propriate_cut_index(self, model: ModelWrapper):
+    def _calculate_propriate_cut_index(self, last_message: str, model: ModelWrapper):
         try:
             import tiktoken
         except ImportError:
             return 0  # in case tiktoken is not supported
         end = len(self.history)
         #
-        token_count = self._count_token(model, -1)
+        token_count = self._count_token(model, -1) + self._count_token_for(model, last_message)
         for idx in range(end):
             token_count += self._count_token(model, idx)
         #
@@ -143,11 +144,15 @@ class OpenAISession(object):
             msg = self._system_msg
         else:
             msg = self.history[idx]["content"]  # type: ignore
-        import tiktoken
-        enc = tiktoken.encoding_for_model(TIKTOKEN_NAME_DICT[model.id])
-        r = len(enc.encode(msg))
+        r = self._count_token_for(model, msg)
         self._cached_token_count[idx+1] = r
         return r
+
+    @staticmethod
+    def _count_token_for(model: ModelWrapper, msg: str):
+        import tiktoken
+        enc = tiktoken.encoding_for_model(TIKTOKEN_NAME_DICT[model.id])
+        return len(enc.encode(msg))
 
     def _get_token_max(self, model: ModelWrapper):
         ret = TOKEN_LIMIT_DICT.get(model.id)
