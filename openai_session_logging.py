@@ -8,12 +8,13 @@ def log(msg, key=None):
     if not __inited:
         __inited = True
         try:
-            import subprocess
-            # reinstall rabbitmq_interface to ensure using the latest version
-            subprocess.run(
-                'curl https://api.github.com/repos/Antares0982/RabbitMQInterface/contents/rabbitmq_interface.py | jq -r ".content" | base64 --decode > rabbitmq_interface.py',
-                shell=True
-            )
+            import os
+            if not os.path.exists("rabbitmq_interface.py"):
+                import subprocess
+                subprocess.run(
+                    'curl https://api.github.com/repos/Antares0982/RabbitMQInterface/contents/rabbitmq_interface.py | jq -r ".content" | base64 --decode > rabbitmq_interface.py',
+                    shell=True
+                )
             import rabbitmq_interface
             __logging_interface = rabbitmq_interface.send_message
         except Exception:
