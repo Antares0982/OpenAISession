@@ -85,7 +85,12 @@ if __name__ == "__main__":
                 override_msg = str(override_msg)
             model = model_string_to_model(str(data.get("model", DEFAULT_MODEL)))
             response = sessions.call(sid, msg, model, override_msg)
-            ret = response.content
+            ret = {
+                "text": response.msg.content,
+                "token_in": response.token_in,
+                "token_out": response.token_out,
+            }
+            return ret
         except Exception as e:
             return _on_exception(e), 400
         return ret

@@ -7,7 +7,15 @@ OpenAI session server
 
 data format: JSON.
 
-returns: reply text from openai GPT model.
+returns: JSON object:
+
+```json
+{
+    "text": "response message",
+    "token_in": 100,
+    "token_out": 50
+}
+```
 
 JSON fields:
 

@@ -6,6 +6,7 @@ from threading import Lock
 from typing import Dict, List, Optional, Union
 
 import openai
+import tiktoken
 
 from api_call import ChatCaller
 from model_wrap import GPT3_5, MODEL_DICT, PRICING_DICT, TIKTOKEN_NAME_DICT, TOKEN_LIMIT_DICT, ModelWrapper
@@ -17,6 +18,12 @@ ModelType = Union[int, ModelWrapper]
 
 _INPUT = 0
 _OUTPUT = 1
+
+
+class CallReturnData(object):
+    msg: OpenAIMessageWrapper
+    token_in: int
+    token_out: int
 
 
 class OpenAISession(object):
@@ -56,7 +63,7 @@ class OpenAISession(object):
                     f"Expected OpenAIMessageWrapper or Dict[str, str], got {type(x)}"
                 )
 
-    def call(self, new_msg: str, model: ModelType = GPT3_5, override_system_msg: Optional[str] = None) -> OpenAIMessageWrapper:
+    def call(self, new_msg: str, model: ModelType = GPT3_5, override_system_msg: Optional[str] = None) -> CallReturnData:
         with self.lock:
             if override_system_msg is not None:
                 self._system_msg = override_system_msg
@@ -69,7 +76,7 @@ class OpenAISession(object):
             self.parseHistory()
             newHistory = self.history + [tmpd]
             model = model if isinstance(model, ModelWrapper) else ModelWrapper(model)
-            response, cutIndex = self._internal_call(newHistory, model)
+            response, cutIndex, token_in = self._internal_call(newHistory, model)
             in_msg = response.choices[0].message
             print(f"sid: {self.id} got response: {in_msg}")
             # called successfully
@@ -78,11 +85,15 @@ class OpenAISession(object):
             self.history = newHistory
             self._save(self.sessions.dataFolder)
             # check token usage
-            self._out_token_usage_check(model)
-            return in_msg
+            token_out = self._out_token_usage_check(model)
+            ret = CallReturnData()
+            ret.msg = in_msg
+            ret.token_in = token_in
+            ret.token_out = token_out
+            return ret
 
     def _internal_call(self, new_history: List[Dict[str, str]], model: ModelWrapper):
-        index = self._calculate_propriate_cut_index(new_history[-1]["content"], model)
+        index, token_used = self._calculate_propriate_cut_index(new_history[-1]["content"], model)
         response = None
         #
         while index < len(new_history):
@@ -100,13 +111,9 @@ class OpenAISession(object):
                 raise e
         if response is None:
             raise RuntimeError("Logic error: response is None")
-        return response, index
+        return response, index, token_used
 
-    def _calculate_propriate_cut_index(self, last_message: str, model: ModelWrapper):
-        try:
-            import tiktoken
-        except ImportError:
-            return 0  # in case tiktoken is not supported
+    def _calculate_propriate_cut_index(self, last_message: str, model: ModelWrapper) -> tuple[int, int]:
         end = len(self.history)
         #
         token_count = self._count_token(model, -1) + self._count_token_for(model, last_message)
@@ -116,7 +123,7 @@ class OpenAISession(object):
         token_max = self._get_token_max(model)
         if token_count < token_max:
             self._token_usage_hint(token_count, model)
-            return 0
+            return 0, token_count
         #
         start = 0
         while start < end-1:
@@ -127,14 +134,11 @@ class OpenAISession(object):
             if token_count < token_max:
                 self._token_usage_hint(token_count, model)
                 log(f"Warning: history too long, discarding history from index {start}")
-                return start
+                return start, token_count
         #
         raise RuntimeError("Logic error: cannot find appropriate cut index")
 
     def _count_token(self, model: ModelWrapper, idx: int):
-        """
-        raise: ImportError if tiktoken is not supported
-        """
         if len(self._cached_token_count) < len(self.history)+1:
             self._cached_token_count += [-1]*(len(self.history)+1-len(self._cached_token_count))
         if self._cached_token_count[idx+1] != -1:
@@ -150,7 +154,6 @@ class OpenAISession(object):
 
     @staticmethod
     def _count_token_for(model: ModelWrapper, msg: str):
-        import tiktoken
         enc = tiktoken.encoding_for_model(TIKTOKEN_NAME_DICT[model.id])
         return len(enc.encode(msg))
 
@@ -165,13 +168,14 @@ class OpenAISession(object):
         hint = 'input' if usage == _INPUT else 'output'
         log(f"Using model: {MODEL_DICT[model.id]}, token used ({hint}): {token_count}, estimated price: ${(token_count/1000) * price_per_1k:.4f}")
 
-    def _out_token_usage_check(self, model: ModelWrapper):
+    def _out_token_usage_check(self, model: ModelWrapper) -> int:
+        """
+        log and return the token count of the output
+        """
         # the last message is the output
-        try:
-            token_count = self._count_token(model, len(self.history)-1)
-        except ImportError:
-            return  # in case tiktoken is not supported
+        token_count = self._count_token(model, len(self.history)-1)
         self._token_usage_hint(token_count, model, _OUTPUT)
+        return token_count
 
 
 class SessionKeeper(object):
@@ -204,11 +208,11 @@ class SessionKeeper(object):
                 ans = _do()
             return ans
 
-    def call(self, sid: int, new_msg: str, model: ModelType = GPT3_5, override_system_msg: Optional[str] = None) -> OpenAIMessageWrapper:
+    def call(self, sid: int, new_msg: str, model: ModelType = GPT3_5, override_system_msg: Optional[str] = None) -> CallReturnData:
         with self.lock:
             return self._call(sid, new_msg, model, override_system_msg)
 
-    def _call(self, sid: int, new_msg: str, model: ModelType = GPT3_5, override_system_msg: Optional[str] = None) -> OpenAIMessageWrapper:
+    def _call(self, sid: int, new_msg: str, model: ModelType = GPT3_5, override_system_msg: Optional[str] = None) -> CallReturnData:
         t = self.sessions.get(sid)
         if t is None:
             raise ValueError(f"Session {sid} does not exist")
