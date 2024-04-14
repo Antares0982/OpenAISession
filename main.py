@@ -4,6 +4,8 @@ import os
 import sys
 from typing import TYPE_CHECKING, Any
 
+import openai
+
 from model_wrap import model_string_to_model
 from openai_session import SessionKeeper
 from openai_session_logging import log
@@ -95,6 +97,8 @@ if __name__ == "__main__":
                 "token_out": response.token_out,
             }
             return ret
+        except openai.error.RateLimitError:
+            return "Token rate limit exceeded", 503
         except Exception as e:
             return _on_exception(e), 400
 
