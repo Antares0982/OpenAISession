@@ -63,10 +63,14 @@ if __name__ == "__main__":
         try:
             if app.debug:
                 import traceback
-                return traceback.format_exc()
+                ret = traceback.format_exc()
+                log(ret)
+                return ret
         except Exception:
             ...
-        return repr(e)
+        ret = repr(e)
+        log(ret)
+        return ret
 
     @app.route("/api", methods=["POST"])
     def api() -> "ResponseReturnValue":
@@ -93,7 +97,6 @@ if __name__ == "__main__":
             return ret
         except Exception as e:
             return _on_exception(e), 400
-        return ret
 
     @app.route("/create", methods=["POST"])
     def create() -> "ResponseReturnValue":
