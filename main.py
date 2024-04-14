@@ -98,6 +98,7 @@ if __name__ == "__main__":
             }
             return ret
         except openai.error.RateLimitError:
+            log("Token rate limit exceeded!")
             return "Token rate limit exceeded", 503
         except Exception as e:
             return _on_exception(e), 400
