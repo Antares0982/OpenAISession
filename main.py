@@ -102,7 +102,8 @@ if __name__ == "__main__":
             return "Token rate limit exceeded", 503
         except Exception as e:
             err = _on_exception(e)
-            return print(err), 400
+            print(err)
+            return err, 400
 
     @app.route("/create", methods=["POST"])
     def create() -> "ResponseReturnValue":

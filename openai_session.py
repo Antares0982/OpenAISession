@@ -51,17 +51,13 @@ class OpenAISession(object):
 
     def parseHistory(self):
         for i, x in enumerate(self.history):
-            if isinstance(x, OpenAIMessageWrapper):
+            if isinstance(x, dict):
+                continue
+            else:
                 self.history[i] = {
                     "role": x.role,
                     "content": x.content
                 }
-            elif isinstance(x, dict):
-                continue
-            else:
-                raise TypeError(
-                    f"Expected OpenAIMessageWrapper or Dict[str, str], got {type(x)}"
-                )
 
     def call(self, new_msg: str, model: ModelType = GPT3_5, override_system_msg: Optional[str] = None) -> CallReturnData:
         with self.lock:
@@ -103,7 +99,7 @@ class OpenAISession(object):
                 )
                 break
             except openai.BadRequestError as e:
-                if index < len(new_history)-1 and str(e).lower().find("maximum context length") != -1:
+                if index < len(new_history) - 1 and str(e).lower().find("maximum context length") != -1:
                     index += 2
                     print(f"Content too long for sid {self.id}, dicarding history...",
                           file=sys.stderr)
@@ -126,7 +122,7 @@ class OpenAISession(object):
             return 0, token_count
         #
         start = 0
-        while start < end-1:
+        while start < end - 1:
             token_count -= self._count_token(model, start)
             start += 1
             token_count -= self._count_token(model, start)
@@ -139,17 +135,17 @@ class OpenAISession(object):
         raise RuntimeError("Logic error: cannot find appropriate cut index")
 
     def _count_token(self, model: ModelWrapper, idx: int):
-        if len(self._cached_token_count) < len(self.history)+1:
-            self._cached_token_count += [-1]*(len(self.history)+1-len(self._cached_token_count))
-        if self._cached_token_count[idx+1] != -1:
-            return self._cached_token_count[idx+1]
+        if len(self._cached_token_count) < len(self.history) + 1:
+            self._cached_token_count += [-1] * (len(self.history) + 1 - len(self._cached_token_count))
+        if self._cached_token_count[idx + 1] != -1:
+            return self._cached_token_count[idx + 1]
         #
         if idx == -1:
             msg = self._system_msg
         else:
             msg = self.history[idx]["content"]  # type: ignore
         r = self._count_token_for(model, msg)
-        self._cached_token_count[idx+1] = r
+        self._cached_token_count[idx + 1] = r
         return r
 
     @staticmethod
@@ -166,14 +162,14 @@ class OpenAISession(object):
     def _token_usage_hint(self, token_count: int, model: ModelWrapper, usage=_INPUT):
         price_per_1k = PRICING_DICT[model.id][usage]
         hint = 'input' if usage == _INPUT else 'output'
-        log(f"Using model: {MODEL_DICT[model.id]}, token used ({hint}): {token_count}, estimated price: ${(token_count/1000) * price_per_1k:.4f}")
+        log(f"Using model: {MODEL_DICT[model.id]}, token used ({hint}): {token_count}, estimated price: ${(token_count / 1000) * price_per_1k:.4f}")
 
     def _out_token_usage_check(self, model: ModelWrapper) -> int:
         """
         log and return the token count of the output
         """
         # the last message is the output
-        token_count = self._count_token(model, len(self.history)-1)
+        token_count = self._count_token(model, len(self.history) - 1)
         self._token_usage_hint(token_count, model, _OUTPUT)
         return token_count
 

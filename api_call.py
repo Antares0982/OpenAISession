@@ -1,10 +1,16 @@
 
+import os
 from typing import Dict, List, Union
 
 import openai
 
 from model_wrap import ModelWrapper
-from openai_typing import OpenAIMessageWrapper, OpenAIResponseWrapper
+from openai_typing import OpenAIMessageWrapper
+
+
+client = openai.OpenAI(
+    api_key=os.environ.get("OPENAI_API_KEY")
+)
 
 
 def ChatCaller(
@@ -31,11 +37,11 @@ def ChatCaller(
             )
     messages_send = [
         {"role": "system", "content": system_msg}
-    ]+[
+    ] + [
         _genMsg(x) for x in messages
     ]
-    responseObj = openai.ChatCompletion.create(
+    responseObj = client.chat.completions.create(
         model=str(model),
         messages=messages_send
     )
-    return OpenAIResponseWrapper(responseObj)
+    return responseObj
