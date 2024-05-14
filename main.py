@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 SYSTEM_MSG_DEFAULT = "You are a helpful assistant."
-DEFAULT_MODEL = "GPT4_TURBO"
+DEFAULT_MODEL = "GPT4O"
 
 
 def set_default_model(model_raw_string) -> None:
@@ -97,11 +97,12 @@ if __name__ == "__main__":
                 "token_out": response.token_out,
             }
             return ret
-        except openai.error.RateLimitError:
+        except openai.RateLimitError:
             log("Token rate limit exceeded!")
             return "Token rate limit exceeded", 503
         except Exception as e:
-            return _on_exception(e), 400
+            err = _on_exception(e)
+            return print(err), 400
 
     @app.route("/create", methods=["POST"])
     def create() -> "ResponseReturnValue":
@@ -123,4 +124,4 @@ if __name__ == "__main__":
         return ret
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=port, debug=False)
+    app.run(host="127.0.0.1", port=port, debug=True)

@@ -102,7 +102,7 @@ class OpenAISession(object):
                     self._system_msg, new_history[index:], model
                 )
                 break
-            except openai.InvalidRequestError as e:
+            except openai.BadRequestError as e:
                 if index < len(new_history)-1 and str(e).lower().find("maximum context length") != -1:
                     index += 2
                     print(f"Content too long for sid {self.id}, dicarding history...",
