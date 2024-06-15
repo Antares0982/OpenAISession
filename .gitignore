@@ -1,7 +1,7 @@
 data/
 test.py
 .vscode/
-rabbitmq_interface.py
+pika_interface_blocking.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

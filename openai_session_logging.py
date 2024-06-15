@@ -3,22 +3,29 @@ __inited = False
 __logging_interface = None
 
 
+def _try_import():
+    try:
+        import pika_interface_blocking
+        return True
+    except ImportError:
+        return False
+
+
 def log(msg, key=None):
     global __inited, __logging_interface
     if not __inited:
         __inited = True
         try:
-            import os
-            if not os.path.exists("rabbitmq_interface.py"):
+            if not _try_import():
                 import subprocess
                 subprocess.run(
-                    'curl https://api.github.com/repos/Antares0982/RabbitMQInterface/contents/rabbitmq_interface.py | jq -r ".content" | base64 --decode > rabbitmq_interface.py',
+                    'curl -O https://raw.githubusercontent.com/Antares0982/PikaInterface/main/pika_interface_blocking.py',
                     shell=True
                 )
-            import rabbitmq_interface
-            __logging_interface = rabbitmq_interface.send_message
+            import pika_interface_blocking
+            __logging_interface = pika_interface_blocking.send_message
         except Exception:
-            print("Failed to import rabbitmq_interface")
+            print("Failed to import pika_interface_blocking")
     if __logging_interface is None:
         return
     #
