@@ -39,6 +39,10 @@ def set_default_model(model_raw_string) -> None:
 
 
 if __name__ == "__main__":
+    if os.environ.get("http_proxy") is None or os.environ.get("https_proxy") is None:
+        print("Please set http_proxy and https_proxy environment variables", file=sys.stderr)
+        exit(1)
+
     import flask
 
     dataFolder = os.environ.get("OPENAI_DATA_FOLDER")
