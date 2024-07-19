@@ -2,7 +2,7 @@
 
 import os
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import openai
 
@@ -45,12 +45,12 @@ if __name__ == "__main__":
 
     import flask
 
-    dataFolder = os.environ.get("OPENAI_DATA_FOLDER")
-    if dataFolder is None:
+    data_directory = os.environ.get("OPENAI_DATA_FOLDER")
+    if data_directory is None:
         print("environment variable OPENAI_DATA_FOLDER not set", file=sys.stderr)
         exit(1)
-    if not os.path.exists(dataFolder):
-        os.makedirs(dataFolder)
+    if not os.path.exists(data_directory):
+        os.makedirs(data_directory)
 
     port_str = os.environ.get("OPENAI_PORT")
     if port_str is None:
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     if _use_model_name is not None:
         set_default_model(_use_model_name)
 
-    sessions = SessionKeeper(dataFolder)
+    sessions = SessionKeeper(data_directory)
     app = flask.Flask(__name__)
 
     def _on_exception(e: Exception):
@@ -82,23 +82,38 @@ if __name__ == "__main__":
     def api() -> "ResponseReturnValue":
         data: dict = flask.request.json  # type: ignore
         try:
-            if data is None:
+            if not data:
                 return "No data provided", 400
-            if "sid" not in data or not str(data["sid"]).isdigit():
-                return "No session id provided", 400
             if "msg" not in data:
                 return "No message provided", 400
-            sid = int(data["sid"])
-            msg = str(data["msg"])
-            override_msg = data.get("system_msg", None)
-            if override_msg is not None:
-                override_msg = str(override_msg)
+            sid_str = data.get("sid")
+            sid = int(sid_str) if sid_str else None
+            msg = data["msg"]
+            system_msg = data.get("system_msg")
+            if sid is not None and system_msg is not None:
+                return "Cannot specify system_msg for an existing session", 400
+            if sid is None and system_msg is None:
+                system_msg = SYSTEM_MSG_DEFAULT
+            user_name = data.get("user_name")
+            if sid is not None and user_name is not None:
+                return "Cannot specify user_name for an existing session", 400
+            assistant_name = data.get("assistant_name")
+            if sid is not None and assistant_name is not None:
+                return "Cannot specify assistant_name for an existing session", 400
             model = model_string_to_model(str(data.get("model", DEFAULT_MODEL)))
-            response = sessions.call(sid, msg, model, override_msg)
+
+            def string_check(x):
+                return not (x is not None and not isinstance(x, str))
+            #
+            if not all(map(string_check, [msg, system_msg, user_name, assistant_name])):
+                return "msg, system_msg, user_name, assistant_name must be strings", 400
+            # all check completed
+            response = sessions.call(sid, msg, model, system_msg, user_name, assistant_name)
             ret = {
                 "text": response.msg.content,
                 "token_in": response.token_in,
                 "token_out": response.token_out,
+                "new_session_id": response.new_session_id,
             }
             return ret
         except openai.RateLimitError:
@@ -108,25 +123,6 @@ if __name__ == "__main__":
             err = _on_exception(e)
             print(err)
             return err, 400
-
-    @app.route("/create", methods=["POST"])
-    def create() -> "ResponseReturnValue":
-        try:
-            data: dict = flask.request.json  # type: ignore
-            # get id from args
-            _sid: Any = data.get("sid")
-            system_msg: Any = data.get("system_msg")
-            sid = sessions.newId(None if _sid is None else int(_sid))
-            #
-            sessions.create(sid, str(system_msg) if system_msg is not None else SYSTEM_MSG_DEFAULT)  # throw on error
-            ret = str(sid)
-        except Exception as e:
-            return _on_exception(e), 400
-        try:
-            log(f"Created session {sid}")
-        except Exception:
-            ...
-        return ret
 
     @app.route("/list_models", methods=["GET"])
     def list_models() -> "ResponseReturnValue":

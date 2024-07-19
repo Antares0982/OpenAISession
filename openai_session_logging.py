@@ -4,7 +4,7 @@ _logging_interface = None
 
 def _try_import():
     try:
-        import pika_interface_blocking
+        import pika_interface_blocking  # pylint: disable=W0611
         return True
     except ImportError:
         return False
