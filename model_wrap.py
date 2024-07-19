@@ -4,7 +4,8 @@ GPT4 = 2
 GPT4_32K = 3
 GPT4_TURBO = 4
 GPT4O = 5
-MAX = 6
+GPT4O_MINI = 6
+MAX = 7
 
 MODEL_DICT = {
     GPT3_5: "gpt-3.5-turbo",
@@ -13,6 +14,7 @@ MODEL_DICT = {
     GPT4_32K: "gpt-4-32k",
     GPT4_TURBO: "gpt-4-turbo",
     GPT4O: "gpt-4o",
+    GPT4O_MINI: "gpt-40-mini",
 }
 
 TIKTOKEN_NAME_DICT = {
@@ -22,6 +24,7 @@ TIKTOKEN_NAME_DICT = {
     GPT4: "gpt-4",
     GPT4_32K: "gpt-4",
     GPT4_TURBO: "gpt-4",
+    GPT4O_MINI: "gpt-4",
 }
 
 TOKEN_LIMIT_DICT = {
@@ -31,6 +34,7 @@ TOKEN_LIMIT_DICT = {
     GPT4_32K: 32768,
     GPT4_TURBO: 128000,
     GPT4O: 128000,
+    GPT4O_MINI: 128000,
 }
 
 STR_MODEL_DICT = {
@@ -40,6 +44,7 @@ STR_MODEL_DICT = {
     "GPT4_32K": GPT4_32K,
     "GPT4_TURBO": GPT4_TURBO,
     "GPT4O": GPT4O,
+    "GPT4O_MINI": GPT4O_MINI,
 }
 
 # per 1k
@@ -50,6 +55,7 @@ PRICING_DICT = {
     GPT4_32K: (0.06, 0.12),
     GPT4_TURBO: (0.01, 0.03),
     GPT4O: (0.005, 0.015),
+    GPT4O_MINI: (0.00015, 0.000075),
 }
 
 

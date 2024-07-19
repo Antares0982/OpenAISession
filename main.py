@@ -6,16 +6,17 @@ from typing import TYPE_CHECKING, Any
 
 import openai
 
-from model_wrap import model_string_to_model
+from model_wrap import STR_MODEL_DICT, model_string_to_model
 from openai_session import SessionKeeper
 from openai_session_logging import log
+
 
 if TYPE_CHECKING:
     from flask.typing import ResponseReturnValue
 
 
 SYSTEM_MSG_DEFAULT = "You are a helpful assistant."
-DEFAULT_MODEL = "GPT4O"
+DEFAULT_MODEL = "GPT4O_MINI"
 
 
 def set_default_model(model_raw_string) -> None:
@@ -28,7 +29,6 @@ def set_default_model(model_raw_string) -> None:
     if _k is None:
         return
     global DEFAULT_MODEL
-    from model_wrap import STR_MODEL_DICT
 
     for k2, v2 in STR_MODEL_DICT.items():
         if v2 == _k:
@@ -127,6 +127,10 @@ if __name__ == "__main__":
         except Exception:
             ...
         return ret
+
+    @app.route("/list_model", methods=["GET"])
+    def list_model() -> "ResponseReturnValue":
+        return flask.jsonify(list(STR_MODEL_DICT.keys()))
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=port, debug=False)
