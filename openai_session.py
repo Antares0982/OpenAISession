@@ -125,6 +125,7 @@ class OpenAISession:
             assert self.data.system_msg is not None
             model = model if isinstance(model, ModelWrapper) else ModelWrapper(model)
             response, token_in = self._internal_call(self.data.system_msg, self.data.gen_seq(), model)
+            self._token_usage_hint(token_in, model, _INPUT)
             out_msg = response.choices[0].message
             log(f"sid: {self.data.id} got response: {out_msg}")
             token_out = self._out_token_usage_check(model, out_msg.content)
@@ -147,6 +148,7 @@ class OpenAISession:
             history += SessionData.gen_seq_static(new_msg, None, self.data.user_name, None)
             model = model if isinstance(model, ModelWrapper) else ModelWrapper(model)
             response, token_in = self._internal_call(sys_msg, history, model)
+            self._token_usage_hint(token_in, model, _INPUT)
             out_msg = response.choices[0].message
             log(f"sid: {self.data.id} got response: {out_msg}")
             # called successfully
