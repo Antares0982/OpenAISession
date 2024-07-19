@@ -14,7 +14,7 @@ MODEL_DICT = {
     GPT4_32K: "gpt-4-32k",
     GPT4_TURBO: "gpt-4-turbo",
     GPT4O: "gpt-4o",
-    GPT4O_MINI: "gpt-40-mini",
+    GPT4O_MINI: "gpt-4o-mini",
 }
 
 TIKTOKEN_NAME_DICT = {
