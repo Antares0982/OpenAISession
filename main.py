@@ -128,9 +128,10 @@ if __name__ == "__main__":
             ...
         return ret
 
-    @app.route("/list_model", methods=["GET"])
-    def list_model() -> "ResponseReturnValue":
+    @app.route("/list_models", methods=["GET"])
+    def list_models() -> "ResponseReturnValue":
         return flask.jsonify(list(STR_MODEL_DICT.keys()))
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=port, debug=False)
