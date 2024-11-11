@@ -2,7 +2,7 @@
 data/
 test.py
 .vscode/
-pika_interface_blocking.py
+run_openai.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
