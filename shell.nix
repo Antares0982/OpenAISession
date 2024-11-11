@@ -3,7 +3,7 @@
 }:
 let
   # define version
-  using_python = pkgs.python313;
+  using_python = pkgs.python312;
   # import required python packages
   required_python_packages = import ./py_requirements.nix pkgs;
   #
