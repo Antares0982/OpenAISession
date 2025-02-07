@@ -6,10 +6,15 @@ import openai
 from openai.types.chat import ChatCompletionMessageParam, ChatCompletionSystemMessageParam
 
 from model_wrap import ModelWrapper
+from model_wrap import MODEL_DICT, DEEPSEEK_R1
 
-
-client = openai.OpenAI(
+OPENAI_CLIENT = openai.OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY")
+)
+
+DEEPSEEK_CLIENT = openai.OpenAI(
+    base_url="https://api.deepseek.com/v1",
+    api_key=os.environ.get("DEEPSEEK_API_KEY"),
 )
 
 
@@ -21,8 +26,14 @@ def completion_api_call(
     messages_send = [
         cast(ChatCompletionSystemMessageParam, {"role": "system", "content": system_msg})
     ] + list(messages)
+    model_str = str(model)
+    if model_str == MODEL_DICT[DEEPSEEK_R1]:
+        client = DEEPSEEK_CLIENT
+        print("Using DeepSeek")
+    else:
+        client = OPENAI_CLIENT
     responseObj = client.chat.completions.create(
-        model=str(model),
+        model=model_str,
         messages=messages_send
     )
     return responseObj

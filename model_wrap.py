@@ -8,7 +8,8 @@ GPT4O_MINI = 6
 O1 = 7
 O1_MINI = 8
 O3_MINI = 9
-MAX = 10
+DEEPSEEK_R1 = 10
+MAX = 11
 
 MODEL_DICT = {
     GPT3_5: "gpt-3.5-turbo",
@@ -21,6 +22,7 @@ MODEL_DICT = {
     O1: "o1",
     O1_MINI: "o1-mini",
     O3_MINI: "o3-mini",
+    DEEPSEEK_R1: "deepseek-reasoner",
 }
 
 TIKTOKEN_NAME_DICT = {
@@ -34,6 +36,7 @@ TIKTOKEN_NAME_DICT = {
     O1: "gpt-4o",
     O1_MINI: "gpt-4o",
     O3_MINI: "gpt-4o",
+    DEEPSEEK_R1: "gpt-4o"  # compat TODO remove this
 }
 
 TOKEN_LIMIT_DICT = {
@@ -47,6 +50,7 @@ TOKEN_LIMIT_DICT = {
     O1: 200000,
     O1_MINI: 128000,
     O3_MINI: 200000,
+    DEEPSEEK_R1: 64000,
 }
 
 STR_MODEL_DICT = {
@@ -60,6 +64,7 @@ STR_MODEL_DICT = {
     "O1": O1,
     "O1_MINI": O1_MINI,
     "O3_MINI": O3_MINI,
+    "DEEPSEEK_R1":DEEPSEEK_R1,
 }
 
 # per 1k
@@ -74,6 +79,7 @@ PRICING_DICT = {
     O1: (0.015, 0.06),
     O1_MINI: (0.0011, 0.0044),
     O3_MINI: (0.0011, 0.0044),
+    DEEPSEEK_R1: (0, 0),  # TODO
 }
 
 
