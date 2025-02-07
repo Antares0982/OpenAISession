@@ -2,6 +2,7 @@
 data/
 test.py
 .vscode/
+.direnv
 run_openai.sh
 
 # Byte-compiled / optimized / DLL files
