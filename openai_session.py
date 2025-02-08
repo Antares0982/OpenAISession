@@ -26,6 +26,7 @@ class CallReturnData(object):
     token_in: int
     token_out: int
     new_session_id: int
+    reasoning_content: str | None
 
 
 class ObjectDict(dict):
@@ -50,6 +51,7 @@ class SessionData(ObjectDict):
     assistant_message: str | None
     user_name: str | None
     assistant_name: str | None
+    reasoning_content: str | None
 
     def gen_seq(self):
         return self.gen_seq_static(self.user_message, self.assistant_message, self.user_name, self.assistant_name)
@@ -95,10 +97,11 @@ class OpenAISession:
         assistant_message: str | None,
         user_name: str | None = None,
         assistant_name: str | None = None,
+        reasoning_content: str | None = None,
     ) -> None:
         if (previous is None) == (system_msg is None):
             raise RuntimeError("Logic error: previous and system_msg should be exclusive, and at least one should be provided")
-        self.data = SessionData(sid, system_msg, previous, user_message, assistant_message, user_name, assistant_name)
+        self.data = SessionData(sid, system_msg, previous, user_message, assistant_message, user_name, assistant_name, reasoning_content)
         self._lock = Lock()
 
     def save(self, folder: str) -> None:
@@ -147,7 +150,9 @@ class OpenAISession:
             history = self.parse_history(chain)
             history += SessionData.gen_seq_static(new_msg, None, self.data.user_name, None)
             model = model if isinstance(model, ModelWrapper) else ModelWrapper(model)
+            # do call
             response, token_in = self._internal_call(sys_msg, history, model)
+            #
             self._token_usage_hint(token_in, model, _INPUT)
             out_msg = response.choices[0].message
             log(f"sid: {self.data.id} got response: {out_msg}")
@@ -155,7 +160,8 @@ class OpenAISession:
             keeper = self.sessions_keeper
             # pylint: disable=no-member
             new_session_id = keeper.new_id()
-            new_session = keeper.create(new_session_id, None, self.data.id, new_msg, out_msg.content, self.data.user_name, self.data.assistant_name)
+            new_session = keeper.create(new_session_id, None, self.data.id, new_msg, out_msg.content, self.data.user_name,
+                                        self.data.assistant_name, getattr(response, "reasoning_content", None))
             new_session.save(keeper.data_directory)
             # pylint: enable=no-member
             # check token usage
@@ -281,9 +287,10 @@ class SessionKeeper:
         assistant_message: str,
         user_name: str | None = None,
         assistant_name: str | None = None,
+        reasoning_content: str | None = None,
     ):
         with self._lock:
-            return self._create(sid, system_msg, previous, user_message, assistant_message, user_name, assistant_name)
+            return self._create(sid, system_msg, previous, user_message, assistant_message, user_name, assistant_name, reasoning_content)
 
     def _create(
         self,
@@ -294,10 +301,11 @@ class SessionKeeper:
         assistant_message: str | None,
         user_name: str | None = None,
         assistant_name: str | None = None,
+        reasoning_content: str | None = None,
     ):
         if sid in self._sessions:
             raise ValueError(f"Session {sid} already exists")
-        t = OpenAISession(sid, system_msg, previous, user_message, assistant_message, user_name, assistant_name)
+        t = OpenAISession(sid, system_msg, previous, user_message, assistant_message, user_name, assistant_name, reasoning_content)
         self._sessions[sid] = t
         o = self
         t.sessions_keeper = o
@@ -340,7 +348,7 @@ class SessionKeeper:
         assistant_name: str | None
     ) -> Callable[[], CallReturnData]:
         session = self._create(new_id, system_msg, None, new_msg,
-                               None, user_name, assistant_name)
+                               None, user_name, assistant_name, None)
 
         def outside_lock_call():
             return session.call_self(model)
@@ -363,7 +371,7 @@ class SessionKeeper:
         return sid in self._sessions
 
     def _create_with_data(self, data: SessionData):
-        return self._create(data.id, data.system_msg, data.previous, data.user_message, data.assistant_message, data.user_name, data.assistant_name)
+        return self._create(data.id, data.system_msg, data.previous, data.user_message, data.assistant_message, data.user_name, data.assistant_name, data.reasoning_content)
 
     def load(self):
         with self._lock:

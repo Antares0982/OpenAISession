@@ -115,6 +115,9 @@ if __name__ == "__main__":
                 "token_out": response.token_out,
                 "new_session_id": response.new_session_id,
             }
+            reasoning_content = getattr(response.msg, "reasoning_content", None)
+            if reasoning_content:
+                ret["reasoning_content"] = reasoning_content
             return ret
         except openai.RateLimitError:
             log("Token rate limit exceeded!")
