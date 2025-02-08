@@ -82,6 +82,8 @@ class SessionData(ObjectDict):
     @classmethod
     def deserialize(cls, fp):
         o = json.load(fp)
+        if "reasoning_content" not in o:
+            o["reasoning_content"] = None
         return cls(**o)
 
 
