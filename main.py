@@ -133,5 +133,5 @@ if __name__ == "__main__":
 
 
 if __name__ == "__main__":
-    debug = False
+    debug = bool(os.environ.get("OPENAI_SESSION_DEBUG_MODE"))
     app.run(host="127.0.0.1", port=port, debug=debug)
