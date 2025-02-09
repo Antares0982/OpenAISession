@@ -1,8 +1,11 @@
+import json
 import re
 import traceback
 from traceback import TracebackException
 from types import TracebackType
 from typing import Any
+
+from httpx import Response
 
 _sentinel = getattr(traceback, "_sentinel")
 _parse_value_tb = getattr(traceback, "_parse_value_tb")
@@ -18,6 +21,8 @@ def _matcher(text: str) -> int:
 
 
 def _short_format(val):
+    if isinstance(val, (Response,)):
+        return json.dumps(val.__dict__, ensure_ascii=False)
     rep = str(val)
     if len(rep) > 256:
         suffix = "...<Too long to show>"

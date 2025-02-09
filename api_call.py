@@ -7,6 +7,8 @@ from openai.types.chat import ChatCompletionMessageParam, ChatCompletionSystemMe
 
 from model_wrap import ModelWrapper
 from model_wrap import MODEL_DICT, DEEPSEEK_R1
+from time import perf_counter
+from openai_session_logging import log
 
 OPENAI_CLIENT = openai.OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY")
@@ -32,10 +34,15 @@ def completion_api_call(
         print("Using DeepSeek")
     else:
         client = OPENAI_CLIENT
+    # call
+    _t0 = perf_counter()
     responseObj = client.chat.completions.create(
         model=model_str,
-        messages=messages_send
+        messages=messages_send,
+        stream=False
     )
+    _t1 = perf_counter()
+    log(f"API call took {_t1 - _t0:.2f}s, model={model_str}")
     return responseObj
     # log(f"system_msg: {system_msg}")
     # log(f"messages: {messages}")
