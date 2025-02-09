@@ -9,11 +9,17 @@ from typing import Callable, Dict, List, Optional, Union
 import openai
 import tiktoken
 
-from api_call import completion_api_call
-from model_wrap import GPT3_5, MODEL_DICT, PRICING_DICT, TIKTOKEN_NAME_DICT, TOKEN_LIMIT_DICT, ModelWrapper
+from api_call import ObjectDict, completion_api_call
+from model_wrap import (
+    GPT3_5,
+    MODEL_DICT,
+    PRICING_DICT,
+    TIKTOKEN_NAME_DICT,
+    TOKEN_LIMIT_DICT,
+    ModelWrapper,
+)
 from openai_session_logging import log
 from openai_typing import OpenAIMessageWrapper
-
 
 ModelType = Union[int, ModelWrapper]
 
@@ -27,19 +33,6 @@ class CallReturnData(object):
     token_out: int
     new_session_id: int
     reasoning_content: str | None
-
-
-class ObjectDict(dict):
-    """
-    General json object that allows attributes 
-    to be bound to and also behaves like a dict.
-    """
-
-    def __getattr__(self, attr: str):
-        return self.get(attr)
-
-    def __setattr__(self, attr: str, value):
-        self[attr] = value
 
 
 @dataclass
@@ -131,7 +124,7 @@ class OpenAISession:
             model = model if isinstance(model, ModelWrapper) else ModelWrapper(model)
             response, token_in = self._internal_call(self.data.system_msg, self.data.gen_seq(), model)
             self._token_usage_hint(token_in, model, _INPUT)
-            out_msg = response.choices[0].message
+            out_msg = response
             log(f"sid: {self.data.id} got response: {out_msg}")
             token_out = self._out_token_usage_check(model, out_msg.content)
             self.data.assistant_message = out_msg.content
@@ -142,6 +135,7 @@ class OpenAISession:
             ret.token_in = token_in
             ret.token_out = token_out
             ret.new_session_id = self.data.id
+            ret.reasoning_content = out_msg.reasoning_content
             return ret
 
     def call(self, new_msg: str, model: ModelType = GPT3_5) -> CallReturnData:
@@ -156,14 +150,14 @@ class OpenAISession:
             response, token_in = self._internal_call(sys_msg, history, model)
             #
             self._token_usage_hint(token_in, model, _INPUT)
-            out_msg = response.choices[0].message
+            out_msg = response
             log(f"sid: {self.data.id} got response: {out_msg}")
             # called successfully
             keeper = self.sessions_keeper
             # pylint: disable=no-member
             new_session_id = keeper.new_id()
             new_session = keeper.create(new_session_id, None, self.data.id, new_msg, out_msg.content, self.data.user_name,
-                                        self.data.assistant_name, getattr(response, "reasoning_content", None))
+                                        self.data.assistant_name, out_msg.reasoning_content)
             new_session.save(keeper.data_directory)
             # pylint: enable=no-member
             # check token usage
@@ -173,6 +167,7 @@ class OpenAISession:
             ret.token_in = token_in
             ret.token_out = token_out
             ret.new_session_id = new_session_id
+            ret.reasoning_content = out_msg.reasoning_content
             return ret
 
     def get_chain(self) -> List["OpenAISession"]:

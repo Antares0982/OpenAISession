@@ -2,7 +2,6 @@
 
 import os
 import sys
-import traceback
 from typing import TYPE_CHECKING
 
 import openai
@@ -134,7 +133,5 @@ if __name__ == "__main__":
 
 
 if __name__ == "__main__":
-    debug = False
-    if debug:
-        traceback.format_exception = format_exception_with_local_vars
+    debug = True
     app.run(host="127.0.0.1", port=port, debug=debug)

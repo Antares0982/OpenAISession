@@ -1,13 +1,15 @@
 
 import os
-from typing import Iterable, cast
+from time import perf_counter
+from typing import Any, Iterable, cast
 
 import openai
-from openai.types.chat import ChatCompletionMessageParam, ChatCompletionSystemMessageParam
+from openai.types.chat import (
+    ChatCompletionMessageParam,
+    ChatCompletionSystemMessageParam,
+)
 
-from model_wrap import ModelWrapper
-from model_wrap import MODEL_DICT, DEEPSEEK_R1
-from time import perf_counter
+from model_wrap import DEEPSEEK_R1, MODEL_DICT, O1, O3_MINI, ModelWrapper
 from openai_session_logging import log
 
 OPENAI_CLIENT = openai.OpenAI(
@@ -18,6 +20,25 @@ DEEPSEEK_CLIENT = openai.OpenAI(
     base_url="https://api.deepseek.com/v1",
     api_key=os.environ.get("DEEPSEEK_API_KEY"),
 )
+
+
+class ObjectDict(dict):
+    """
+    General json object that allows attributes 
+    to be bound to and also behaves like a dict.
+    """
+
+    def __getattr__(self, attr: str):
+        return self.get(attr)
+
+    def __setattr__(self, attr: str, value):
+        self[attr] = value
+
+
+class CompletionAPIResponse(ObjectDict):
+    role: str
+    content: str
+    reasoning_content: str
 
 
 def completion_api_call(
@@ -36,24 +57,27 @@ def completion_api_call(
         client = OPENAI_CLIENT
     # call
     _t0 = perf_counter()
+    kw: dict[str, Any] = dict()
+    if model_str == MODEL_DICT[O1] or model_str == MODEL_DICT[O3_MINI]:
+        kw["reasoning_effort"] = "medium"
     responseObj = client.chat.completions.create(
         model=model_str,
         messages=messages_send,
-        stream=False
+        stream=True,
+        **kw
     )
+    content = ""
+    _reasoning_content = ""
+    role = ""
+    for chunk in responseObj:
+        cur_delta = chunk.choices[0].delta
+        if not role:
+            role = cur_delta.role
+        content += cur_delta.content if cur_delta.content else ""  # getattr(cur_delta, "reasoning_content", "")
+        cur_reasoning_content = getattr(cur_delta, "reasoning_content", None)
+        _reasoning_content += cur_reasoning_content if cur_reasoning_content else ""
+    # response process done
     _t1 = perf_counter()
     log(f"API call took {_t1 - _t0:.2f}s, model={model_str}")
-    return responseObj
-    # log(f"system_msg: {system_msg}")
-    # log(f"messages: {messages}")
-    # log(f"model: {model}")
-    # class FakeContent:
-    #     content = "Test response!"
-    # class FakeMessage:
-    #     message = FakeContent
-    # class FakeResponse:
-    #     # response.choices[0].message
-    #     choices = [
-    #         FakeMessage
-    #     ]
-    # return FakeResponse
+    reasoning_content = None if not _reasoning_content else _reasoning_content
+    return CompletionAPIResponse(role=role, content=content, reasoning_content=reasoning_content)

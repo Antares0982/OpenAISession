@@ -65,5 +65,7 @@ pkgs.mkShell {
     export PATH=${nix_pyenv_directory}/bin:$PATH
 
     # nix-build shell.nix -A inputDerivation -o ${nix_pyenv_directory}/.nix-shell-inputs
+
+    source ./run_env.sh
   '';
 }
