@@ -133,4 +133,9 @@ if __name__ == "__main__":
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=port, debug=False)
+    debug = False
+    if debug:
+        import traceback
+        from format_exc import format_exception_with_local_vars
+        traceback.format_exception = format_exception_with_local_vars
+    app.run(host="127.0.0.1", port=port, debug=debug)
