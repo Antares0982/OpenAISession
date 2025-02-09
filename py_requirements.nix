@@ -1,5 +1,4 @@
-pkgs: pypkgs: with pypkgs;
-[
+pkgs: pypkgs: with pypkgs; [
   openai
   flask
   pika

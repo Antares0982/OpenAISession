@@ -2,14 +2,15 @@
 
 import os
 import sys
+import traceback
 from typing import TYPE_CHECKING
 
 import openai
 
+from format_exc import format_exception_with_local_vars
 from model_wrap import STR_MODEL_DICT, model_string_to_model
 from openai_session import SessionKeeper
 from openai_session_logging import log
-
 
 if TYPE_CHECKING:
     from flask.typing import ResponseReturnValue
@@ -68,15 +69,15 @@ if __name__ == "__main__":
     def _on_exception(e: Exception):
         try:
             if app.debug:
-                import traceback
-                ret = traceback.format_exc()
-                log(ret)
-                return ret
+                ret = format_exception_with_local_vars(type(e), e, e.__traceback__)
+                ret_str = "\n".join(ret)
+                log(ret_str)
+                return ret_str
         except Exception:
             ...
-        ret = repr(e)
-        log(ret)
-        return ret
+        ret_str = repr(e)
+        log(ret_str)
+        return ret_str
 
     @app.route("/api", methods=["POST"])
     def api() -> "ResponseReturnValue":
@@ -135,7 +136,5 @@ if __name__ == "__main__":
 if __name__ == "__main__":
     debug = False
     if debug:
-        import traceback
-        from format_exc import format_exception_with_local_vars
         traceback.format_exception = format_exception_with_local_vars
     app.run(host="127.0.0.1", port=port, debug=debug)

@@ -21,8 +21,11 @@ def _matcher(text: str) -> int:
 
 
 def _short_format(val):
-    if isinstance(val, (Response,)):
-        return json.dumps(val.__dict__, ensure_ascii=False)
+    if type(val).__name__ == "Response":
+        ret = "Response:\n"
+        for k, v in val.__dict__.items():
+            ret += f"  {k} = {v}\n"
+        return ret
     rep = str(val)
     if len(rep) > 256:
         suffix = "...<Too long to show>"
