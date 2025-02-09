@@ -133,5 +133,5 @@ if __name__ == "__main__":
 
 
 if __name__ == "__main__":
-    debug = True
+    debug = False
     app.run(host="127.0.0.1", port=port, debug=debug)
