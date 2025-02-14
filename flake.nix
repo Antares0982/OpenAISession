@@ -8,12 +8,27 @@
   outputs =
     { self, nixpkgs }:
     let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
+      forAllSystems =
+        function:
+        nixpkgs.lib.genAttrs
+          [
+            "x86_64-linux"
+            "aarch64-linux"
+            "x86_64-darwin"
+            "aarch64-darwin"
+          ]
+          (
+            system:
+            function (
+              import nixpkgs {
+                inherit system;
+              }
+            )
+          );
     in
     {
-      packages.x86_64-linux.default = import ./shell.nix {
-        inherit pkgs;
-      };
+      devShells = forAllSystems (pkgs: rec {
+        default = pkgs.callPackage ./shell.nix { persist = true; };
+      });
     };
 }
