@@ -128,6 +128,7 @@ class OpenAISession:
             log(f"sid: {self.data.id} got response: {out_msg}")
             token_out = self._out_token_usage_check(model, out_msg.content)
             self.data.assistant_message = out_msg.content
+            self.data.reasoning_content = out_msg.reasoning_content
             keeper = self.sessions_keeper
             self._save(keeper.data_directory)  # pylint: disable=no-member
             ret = CallReturnData()
