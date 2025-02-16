@@ -59,7 +59,7 @@ def completion_api_call(
     _t0 = perf_counter()
     kw: dict[str, Any] = dict()
     if model_str == MODEL_DICT[O1] or model_str == MODEL_DICT[O3_MINI]:
-        kw["reasoning_effort"] = "medium"
+        kw["reasoning_effort"] = "high"
     responseObj = client.chat.completions.create(
         model=model_str,
         messages=messages_send,
